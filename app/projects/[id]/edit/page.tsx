@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import KpiEditor from "./KpiEditor";
@@ -17,21 +18,23 @@ export default async function EditProjectPage({
 }) {
   const { id } = await params;
   if (!id) return notFound();
+  const projectId: string = id;
 
-  const p = await db.project.findUnique({ where: { id }, include: { kpis: true } });
+  const p = await db.project.findUnique({ where: { id: projectId }, include: { kpis: true } });
   if (!p) return notFound();
+  const project = p;
 
   async function updateProject(formData: FormData) {
     "use server";
     const name = String(formData.get("name") || "").trim();
     const ownerName = String(formData.get("ownerName") || "").trim();
     const department = String(formData.get("department") || "").trim();
-    const fiscalYear = Number(formData.get("fiscalYear") || p.fiscalYear);
-    const status = String(formData.get("status") || p.status);
-    const progress = Number(formData.get("progress") || p.progress);
-    const budget = Number(formData.get("budget") || p.budget);
-    const startDate = new Date(String(formData.get("startDate") || p.startDate.toISOString()));
-    const endDate = new Date(String(formData.get("endDate") || p.endDate.toISOString()));
+    const fiscalYear = Number(formData.get("fiscalYear") || project.fiscalYear);
+    const status = String(formData.get("status") || project.status);
+    const progress = Number(formData.get("progress") || project.progress);
+    const budget = Number(formData.get("budget") || project.budget);
+    const startDate = new Date(String(formData.get("startDate") || project.startDate.toISOString()));
+    const endDate = new Date(String(formData.get("endDate") || project.endDate.toISOString()));
 
     const objective = String(formData.get("objective") || "").trim();
     const targetGroup = String(formData.get("targetGroup") || "").trim();
@@ -41,7 +44,7 @@ export default async function EditProjectPage({
     const timelineNote = String(formData.get("timelineNote") || "").trim();
 
     const rowCount = Number(formData.get("kpiRows") || 0);
-    const kpiUpdates: Promise<unknown>[] = [];
+    const kpiUpdates: Prisma.PrismaPromise<unknown>[] = [];
 
     for (let i = 0; i < rowCount; i += 1) {
       const idValue = String(formData.get(`kpi_id_${i}`) || "").trim();
@@ -54,7 +57,7 @@ export default async function EditProjectPage({
 
       if (idValue) {
         if (shouldDelete) {
-          kpiUpdates.push(db.kPI.deleteMany({ where: { id: idValue, projectId: id } }));
+          kpiUpdates.push(db.kPI.deleteMany({ where: { id: idValue, projectId } }));
           continue;
         }
         if (!nameValue) continue;
@@ -77,7 +80,7 @@ export default async function EditProjectPage({
       kpiUpdates.push(
         db.kPI.create({
           data: {
-            projectId: id,
+            projectId,
             name: nameValue,
             target: targetValue,
             actual: actualValue,
@@ -90,13 +93,13 @@ export default async function EditProjectPage({
 
     await db.$transaction([
       db.project.update({
-        where: { id },
+        where: { id: projectId },
         data: {
           name,
           ownerName,
           department,
           fiscalYear,
-          status: status as typeof p.status,
+          status: status as typeof project.status,
           progress,
           budget,
           startDate,
@@ -112,13 +115,13 @@ export default async function EditProjectPage({
       ...kpiUpdates,
     ]);
 
-    redirect(`/projects/${id}`);
+    redirect(`/projects/${projectId}`);
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-100 via-rose-100 to-amber-100 p-6">
       <div className="mx-auto max-w-3xl space-y-4">
-        <Link href={`/projects/${id}`} className="text-sm font-medium text-slate-600 underline">
+        <Link href={`/projects/${projectId}`} className="text-sm font-medium text-slate-600 underline">
           ← กลับรายละเอียดโครงการ
         </Link>
         <div className="rounded-2xl bg-white/85 p-6 shadow-lg ring-1 ring-white/70 backdrop-blur">
