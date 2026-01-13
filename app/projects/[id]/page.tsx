@@ -200,44 +200,56 @@ function GanttChart({
   const monthIndexByName: Record<string, number> = {
     jan: 0,
     january: 0,
-    กุมภาพันธ์: 1,
+    "ม.ค": 0,
+    มกราคม: 0,
     feb: 1,
     february: 1,
+    "ก.พ": 1,
+    กุมภาพันธ์: 1,
     mar: 2,
     march: 2,
+    "มี.ค": 2,
     มีนาคม: 2,
     apr: 3,
     april: 3,
+    "เม.ย": 3,
     เมษายน: 3,
     may: 4,
+    "พ.ค": 4,
     พฤษภาคม: 4,
     jun: 5,
     june: 5,
+    "มิ.ย": 5,
     มิถุนายน: 5,
     jul: 6,
     july: 6,
+    "ก.ค": 6,
     กรกฎาคม: 6,
     aug: 7,
     august: 7,
+    "ส.ค": 7,
     สิงหาคม: 7,
     sep: 8,
     sept: 8,
     september: 8,
+    "ก.ย": 8,
     กันยายน: 8,
     oct: 9,
     october: 9,
+    "ต.ค": 9,
     ตุลาคม: 9,
     nov: 10,
     november: 10,
+    "พ.ย": 10,
     พฤศจิกายน: 10,
     dec: 11,
     december: 11,
+    "ธ.ค": 11,
     ธันวาคม: 11,
-    มกราคม: 0,
   };
 
   const monthRegex =
-    /(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)/gi;
+    /(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|ม\.ค|ก\.พ|มี\.ค|เม\.ย|พ\.ค|มิ\.ย|ก\.ค|ส\.ค|ก\.ย|ต\.ค|พ\.ย|ธ\.ค|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)/gi;
 
   const toFiscalPos = (monthIndex: number) => (monthIndex - 9 + 12) % 12;
   const toPctRange = (startMonthIndex: number, endMonthIndex: number) => {
@@ -248,6 +260,26 @@ function GanttChart({
       startPct: (startPos / 12) * 100,
       widthPct: ((safeEnd - startPos) / 12) * 100,
     };
+  };
+
+  const normalizeMonthKey = (value: string) => value.toLowerCase().replace(/\.$/, "");
+  const collectMonthMatches = (label: string) => {
+    const matches: { monthIndex: number; pos: number }[] = [];
+    for (const m of label.matchAll(monthRegex)) {
+      const key = normalizeMonthKey(m[0]);
+      const monthIndex = monthIndexByName[key];
+      if (typeof monthIndex === "number") {
+        matches.push({ monthIndex, pos: m.index ?? 0 });
+      }
+    }
+    const numericRegex = /\b(0?[1-9]|1[0-2])\s*[\/.-]\s*(\d{2,4})\b/g;
+    for (const m of label.matchAll(numericRegex)) {
+      const monthIndex = Number(m[1]) - 1;
+      if (monthIndex >= 0 && monthIndex <= 11) {
+        matches.push({ monthIndex, pos: m.index ?? 0 });
+      }
+    }
+    return matches.sort((a, b) => a.pos - b.pos).map((m) => m.monthIndex);
   };
 
   const tones = [
@@ -277,10 +309,7 @@ function GanttChart({
       };
     }
 
-    const monthHits = Array.from(label.matchAll(monthRegex)).map((m) => m[0].toLowerCase());
-    const monthIndexes = monthHits
-      .map((m) => monthIndexByName[m])
-      .filter((v) => typeof v === "number");
+    const monthIndexes = collectMonthMatches(label);
 
     if (monthIndexes.length > 0) {
       const startIdx = monthIndexes[0];

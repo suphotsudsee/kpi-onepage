@@ -28,6 +28,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <footer className="border-t border-slate-200 bg-white/80 px-6 py-4 text-center text-xs text-slate-600">
+          <div>Copyright © 2026 by สุพจน์ สุดสี.</div>
+          <div>All Rights Reserved.</div>
+          <div>กลุ่มงานสุขภาพดิจิท้ล สำนักงานสาธารณสุขจังหวัดอุบลราชธานี</div>
+        </footer>
       </body>
     </html>
   );
