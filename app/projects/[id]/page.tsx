@@ -89,10 +89,12 @@ export default async function ProjectOnePage({
               </span>
             </div>
             <GanttChart
+              code={p.code}
               fiscalYear={p.fiscalYear}
               startDate={p.startDate}
               endDate={p.endDate}
               progress={p.progress}
+              timelineNote={p.timelineNote}
             />
           </div>
 
@@ -158,19 +160,23 @@ function Block({ title, value }: { title: string; value?: string | null }) {
 }
 
 function GanttChart({
+  code,
   fiscalYear,
   startDate,
   endDate,
   progress,
+  timelineNote,
 }: {
+  code?: string | null;
   fiscalYear: number;
   startDate: Date;
   endDate: Date;
   progress: number;
+  timelineNote?: string | null;
 }) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const rangeStart = new Date(fiscalYear, 0, 1);
-  const rangeEnd = new Date(fiscalYear, 11, 31, 23, 59, 59, 999);
+  const months = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+  const rangeStart = new Date(fiscalYear - 1, 9, 1);
+  const rangeEnd = new Date(fiscalYear, 8, 30, 23, 59, 59, 999);
   const totalMs = rangeEnd.getTime() - rangeStart.getTime();
 
   const startMs = startDate.getTime();
@@ -191,25 +197,188 @@ function GanttChart({
   const widthPct = Math.max(rightPct - leftPct, 1.5);
   const progressWidthPct = Math.min(Math.max(progress, 0), 100);
 
+  const monthIndexByName: Record<string, number> = {
+    jan: 0,
+    january: 0,
+    กุมภาพันธ์: 1,
+    feb: 1,
+    february: 1,
+    mar: 2,
+    march: 2,
+    มีนาคม: 2,
+    apr: 3,
+    april: 3,
+    เมษายน: 3,
+    may: 4,
+    พฤษภาคม: 4,
+    jun: 5,
+    june: 5,
+    มิถุนายน: 5,
+    jul: 6,
+    july: 6,
+    กรกฎาคม: 6,
+    aug: 7,
+    august: 7,
+    สิงหาคม: 7,
+    sep: 8,
+    sept: 8,
+    september: 8,
+    กันยายน: 8,
+    oct: 9,
+    october: 9,
+    ตุลาคม: 9,
+    nov: 10,
+    november: 10,
+    พฤศจิกายน: 10,
+    dec: 11,
+    december: 11,
+    ธันวาคม: 11,
+    มกราคม: 0,
+  };
+
+  const monthRegex =
+    /(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)/gi;
+
+  const toFiscalPos = (monthIndex: number) => (monthIndex - 9 + 12) % 12;
+  const toPctRange = (startMonthIndex: number, endMonthIndex: number) => {
+    const startPos = toFiscalPos(startMonthIndex);
+    const endPos = toFiscalPos(endMonthIndex) + 1;
+    const safeEnd = endPos <= startPos ? startPos + 1 : endPos;
+    return {
+      startPct: (startPos / 12) * 100,
+      widthPct: ((safeEnd - startPos) / 12) * 100,
+    };
+  };
+
+  const tones = [
+    "from-amber-400 to-yellow-400",
+    "from-emerald-400 to-teal-500",
+    "from-sky-400 to-cyan-500",
+    "from-fuchsia-500 to-rose-500",
+    "from-indigo-500 to-violet-600",
+    "from-rose-400 to-rose-500",
+  ];
+
+  const noteTasks = String(timelineNote || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*\d+[\).\-\s]+/, "").trim())
+    .filter(Boolean);
+
+  const parsedTasks = noteTasks.map((label, idx) => {
+    const qMatch = label.match(/q\s*([1-4])/i);
+    if (qMatch) {
+      const q = Number(qMatch[1]);
+      return {
+        label,
+        startPct: ((q - 1) * 3 * 100) / 12,
+        widthPct: (3 * 100) / 12,
+        tone: tones[(q - 1) % tones.length],
+        hasRange: true,
+      };
+    }
+
+    const monthHits = Array.from(label.matchAll(monthRegex)).map((m) => m[0].toLowerCase());
+    const monthIndexes = monthHits
+      .map((m) => monthIndexByName[m])
+      .filter((v) => typeof v === "number");
+
+    if (monthIndexes.length > 0) {
+      const startIdx = monthIndexes[0];
+      const endIdx = monthIndexes[monthIndexes.length - 1];
+      const range = toPctRange(startIdx, endIdx);
+      return {
+        label,
+        ...range,
+        tone: tones[idx % tones.length],
+        hasRange: true,
+      };
+    }
+
+    return { label, tone: tones[idx % tones.length], hasRange: false };
+  });
+
+  const showQuarterHeader = parsedTasks.some((t) => /q\s*[1-4]/i.test(t.label));
+  const hasTasks = parsedTasks.length > 0;
+
   return (
     <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm">
-      <div className="grid grid-cols-12 gap-1 text-[11px] font-semibold text-slate-500">
-        {months.map((m) => (
-          <div key={m} className="text-center">
-            {m}
+      <div className="mb-2 text-xs font-semibold text-slate-700">
+        รหัสโครงการ: {code?.trim() || "-"}
+      </div>
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white/90 text-[11px] text-slate-600">
+        <div className="grid grid-cols-[160px_repeat(12,minmax(0,1fr))] border-b border-slate-200 bg-slate-50 font-semibold text-slate-700">
+          <div className="border-r border-slate-200 px-2 py-1">Task Name</div>
+          {showQuarterHeader && (
+            <>
+              <div className="col-span-3 border-r border-slate-200 px-1 py-1 text-center">Q1</div>
+              <div className="col-span-3 border-r border-slate-200 px-1 py-1 text-center">Q2</div>
+              <div className="col-span-3 border-r border-slate-200 px-1 py-1 text-center">Q3</div>
+              <div className="col-span-3 px-1 py-1 text-center">Q4</div>
+            </>
+          )}
+        </div>
+        <div className="grid grid-cols-[160px_repeat(12,minmax(0,1fr))] border-b border-slate-200 bg-white font-semibold text-slate-500">
+          <div className="border-r border-slate-200 px-2 py-1" />
+          {months.map((m, idx) => (
+            <div
+              key={m}
+              className={`px-1 py-1 text-center ${idx !== months.length - 1 ? "border-r border-slate-100" : ""}`}
+            >
+              {m}
+            </div>
+          ))}
+        </div>
+        {parsedTasks.map((row, idx) => (
+          <div
+            key={row.label}
+            className={`grid grid-cols-[160px_repeat(12,minmax(0,1fr))] bg-white ${
+              idx !== parsedTasks.length - 1 ? "border-b border-slate-200" : ""
+            }`}
+          >
+            <div className="border-r border-slate-200 px-2 py-2 text-sm font-medium text-slate-700">
+              {row.label}
+            </div>
+            <div className="relative col-span-12 h-8">
+              <div className="absolute inset-0 grid grid-cols-12">
+                {months.map((m, mIdx) => (
+                  <div
+                    key={`${row.label}-${m}-grid`}
+                    className={`h-full ${mIdx !== months.length - 1 ? "border-r border-slate-100" : ""}`}
+                  />
+                ))}
+              </div>
+              {row.hasRange && (
+                <div
+                  className={`absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-gradient-to-r ${row.tone} shadow-sm`}
+                  style={{ left: `${row.startPct}%`, width: `${row.widthPct}%` }}
+                />
+              )}
+            </div>
           </div>
         ))}
-      </div>
-      <div className="relative mt-2 h-6 rounded-full bg-slate-100">
-        <div
-          className="absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500 shadow-sm"
-          style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-        >
-          <div
-            className="h-full rounded-full bg-black/20"
-            style={{ width: `${progressWidthPct}%` }}
-          />
-        </div>
+        {!hasTasks && (
+          <div className="grid grid-cols-[160px_repeat(12,minmax(0,1fr))] bg-white">
+            <div className="border-r border-slate-200 px-2 py-2 text-sm font-medium text-slate-700">
+              โครงการ
+            </div>
+            <div className="relative col-span-12 h-8">
+              <div className="absolute inset-0 grid grid-cols-12">
+                {months.map((m, mIdx) => (
+                  <div
+                    key={`${m}-grid`}
+                    className={`h-full ${mIdx !== months.length - 1 ? "border-r border-slate-100" : ""}`}
+                  />
+                ))}
+              </div>
+              <div
+                className="absolute top-1/2 h-3 -translate-y-1/2 rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500 shadow-sm"
+                style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+              >
+                <div className="h-full rounded-full bg-black/20" style={{ width: `${progressWidthPct}%` }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="mt-2 text-xs text-slate-600">
         ช่วงเวลา: {startDate.toDateString()} → {endDate.toDateString()} • ความคืบหน้า {progress}%

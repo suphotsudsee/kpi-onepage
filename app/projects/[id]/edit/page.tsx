@@ -27,6 +27,7 @@ export default async function EditProjectPage({
   async function updateProject(formData: FormData) {
     "use server";
     const name = String(formData.get("name") || "").trim();
+    const code = String(formData.get("code") || "").trim();
     const ownerName = String(formData.get("ownerName") || "").trim();
     const department = String(formData.get("department") || "").trim();
     const fiscalYear = Number(formData.get("fiscalYear") || project.fiscalYear);
@@ -96,6 +97,7 @@ export default async function EditProjectPage({
         where: { id: projectId },
         data: {
           name,
+          code: code || null,
           ownerName,
           department,
           fiscalYear,
@@ -131,6 +133,7 @@ export default async function EditProjectPage({
           <h1 className="mt-2 text-2xl font-bold text-slate-900">แก้ไขโครงการ</h1>
           <form action={updateProject} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="ชื่อโครงการ" name="name" defaultValue={p.name} />
+            <Field label="รหัสโครงการ" name="code" defaultValue={p.code ?? ""} />
             <Field label="ผู้รับผิดชอบ" name="ownerName" defaultValue={p.ownerName} />
             <Field label="หน่วยงาน" name="department" defaultValue={p.department} />
             <Field label="ปีงบประมาณ" name="fiscalYear" defaultValue={String(p.fiscalYear)} />
