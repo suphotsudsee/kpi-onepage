@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import DashboardCharts from "./ui/DashboardCharts";
 
@@ -8,7 +7,7 @@ function pct(n: number, d: number) {
   return Math.round((n / d) * 100);
 }
 
-type ProjectWithKpis = Prisma.ProjectGetPayload<{ include: { kpis: true } }>;
+type ProjectWithKpis = Awaited<ReturnType<typeof db.project.findMany>>[number];
 
 export default async function DashboardPage() {
   const projects: ProjectWithKpis[] = await db.project.findMany({
