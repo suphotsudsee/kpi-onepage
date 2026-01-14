@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd /home/phoubon-kpionepage/htdocs/kpi-onepage.phoubon.in.th
-          npm install
+          npm ci
 
       - name: Build Next.js
         run: |
