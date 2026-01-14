@@ -4,6 +4,9 @@ import Link from "next/link";
 import PrintButton from "./PrintButton";
 import DeleteButton from "./DeleteButton";
 
+type ProjectWithKpis = Awaited<ReturnType<typeof db.project.findUnique>>;
+type ProjectKpi = NonNullable<ProjectWithKpis>["kpis"][number];
+
 export default async function ProjectOnePage({
   params,
 }: {
@@ -116,7 +119,7 @@ export default async function ProjectOnePage({
                   </tr>
                 </thead>
                 <tbody className="text-slate-700">
-                  {p.kpis.map((k, idx) => (
+                  {p.kpis.map((k: ProjectKpi, idx) => (
                     <tr
                       key={k.id}
                       className={`border-t border-slate-100 ${idx % 2 === 0 ? "bg-white/70" : "bg-sky-50/50"}`}
