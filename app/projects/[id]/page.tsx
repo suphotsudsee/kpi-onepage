@@ -119,7 +119,7 @@ export default async function ProjectOnePage({
                   </tr>
                 </thead>
                 <tbody className="text-slate-700">
-                  {p.kpis.map((k: ProjectKpi, idx) => (
+                  {p.kpis.map((k: ProjectKpi, idx: number) => (
                     <tr
                       key={k.id}
                       className={`border-t border-slate-100 ${idx % 2 === 0 ? "bg-white/70" : "bg-sky-50/50"}`}
