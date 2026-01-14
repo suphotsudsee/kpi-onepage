@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import KpiEditor from "./KpiEditor";
@@ -45,7 +44,11 @@ export default async function EditProjectPage({
     const timelineNote = String(formData.get("timelineNote") || "").trim();
 
     const rowCount = Number(formData.get("kpiRows") || 0);
-    const kpiUpdates: Prisma.PrismaPromise<unknown>[] = [];
+    const kpiUpdates: Array<
+      | ReturnType<typeof db.kPI.create>
+      | ReturnType<typeof db.kPI.update>
+      | ReturnType<typeof db.kPI.deleteMany>
+    > = [];
 
     for (let i = 0; i < rowCount; i += 1) {
       const idValue = String(formData.get(`kpi_id_${i}`) || "").trim();
